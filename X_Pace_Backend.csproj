@@ -7,7 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="BCrypt" Version="1.0.0" />
+        <PackageReference Include="BCrypt.Net" Version="0.1.0" />
         <PackageReference Include="MongoDB.Driver" Version="2.17.1" />
+        <PackageReference Include="Nanoid" Version="2.1.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     </ItemGroup>
 

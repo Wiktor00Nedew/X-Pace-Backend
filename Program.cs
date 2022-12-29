@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Components.Routing;
+using X_Pace_Backend;
+using X_Pace_Backend.Middleware;
 using X_Pace_Backend.Models;
 using X_Pace_Backend.Services;
 
@@ -6,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<X_PaceDatabaseSettings>(
     builder.Configuration.GetSection("X_PaceDatabase"));
 
+builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<UsersService>();
 
 // Add services to the container.
@@ -22,10 +26,24 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseHttpsRedirection();
+app.UseExceptionHandler("/api/error");
+
+//app.UseHttpsRedirection();
+
+app.MapControllers();
+
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/users", StringComparison.OrdinalIgnoreCase), appBuilder =>
+{
+    appBuilder.UseAuthMiddleware();
+});
+
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/auth/token", StringComparison.OrdinalIgnoreCase), appBuilder =>
+{
+    appBuilder.UseAuthMiddleware();
+});
 
 app.UseAuthorization();
 
-app.MapControllers();
+
 
 app.Run();

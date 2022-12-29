@@ -7,4 +7,6 @@ public class X_PaceDatabaseSettings
     public string DatabaseName { get; set; } = null!;
 
     public string UsersCollectionName { get; set; } = null!;
+
+    public string TokensCollectionName { get; set; } = null!;
 }
