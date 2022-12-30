@@ -42,6 +42,16 @@ app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/auth/token"
     appBuilder.UseAuthMiddleware();
 });
 
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/teams", StringComparison.OrdinalIgnoreCase), appBuilder =>
+{
+    appBuilder.UseAuthMiddleware();
+});
+
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/pages", StringComparison.OrdinalIgnoreCase), appBuilder =>
+{
+    appBuilder.UseAuthMiddleware();
+});
+
 app.UseAuthorization();
 
 

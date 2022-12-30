@@ -9,6 +9,6 @@ public class Token
     public string? Id { get; set; }
     
     public DateTime ExpireDate { get; set; }
-    
-    public string EntityId { get; set; }
+
+    public string EntityId { get; set; } = null!;
 }

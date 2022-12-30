@@ -15,4 +15,6 @@ public class UserBase
     public string Email { get; set; } = null!;
 
     public bool Disabled { get; set; } = false;
+
+    public List<string> Teams { get; set; } = null!;
 }

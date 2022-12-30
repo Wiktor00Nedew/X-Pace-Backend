@@ -53,7 +53,7 @@ public class AuthController : ControllerBase
             // Add generating tokens
 
         await _usersService.CreateAsync(user);
-
+        
         return NoContent(); // later probably change to token + /users/me
     }
 
