@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using X_Pace_Backend.Models;
 using X_Pace_Backend.Services;
 using Directory = X_Pace_Backend.Models.Directory;
@@ -25,11 +26,14 @@ public class DirectoriesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.Team, out _) || (!ObjectId.TryParse(model.ParentDirectory, out _) && model.ParentDirectory != "root"))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var team = await _teamsService.GetAsync(model.Team);
-        
+
         if (team == null)
             return Conflict(new
             {
@@ -77,13 +81,13 @@ public class DirectoriesController : ControllerBase
         var newDirectory = new Directory()
         {
             Name = model.Name,
-            Items = {},
+            Items = new List<Item>(){},
             CreatedAt = DateTime.Now,
             ModifiedAt = DateTime.Now,
             Owner = user.Id,
             ParentDirectory = model.ParentDirectory,
             Permissions =
-            {
+            new List<Permission>(){
                 new()
                 {
                     EntityId = "others",
@@ -97,13 +101,21 @@ public class DirectoriesController : ControllerBase
 
         if (newDirectory.ParentDirectory == "root")
         {
-            team.Items.Add(newDirectory.Id);
+            team.Items.Add(new Item()
+            {
+                Id = newDirectory.Id!,
+                IsPage = false
+            });
             await _teamsService.PatchAsync(team.Id, team);
         }
         else
         {
             var directory = await _directoriesService.GetAsync(newDirectory.ParentDirectory);
-            directory.Items.Add((newDirectory.Id, false));
+            directory.Items.Add(new Item()
+            {
+                Id = newDirectory.Id!,
+                IsPage = false
+            });
             await _directoriesService.PatchAsync(directory.Id, directory);
         }
 
@@ -116,6 +128,9 @@ public class DirectoriesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.DirectoryId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -166,6 +181,9 @@ public class DirectoriesController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
         
+        if (!ObjectId.TryParse(id, out _))
+            return ValidationProblem();
+        
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var directory = await _directoriesService.GetAsync(id);
@@ -207,6 +225,9 @@ public class DirectoriesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.DirectoryId, out _))
+            return ValidationProblem();
         
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -250,6 +271,9 @@ public class DirectoriesController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
         
+        if (!ObjectId.TryParse(model.DirectoryId, out _))
+            return ValidationProblem();
+        
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var directory = await _directoriesService.GetAsync(model.DirectoryId);
@@ -279,7 +303,7 @@ public class DirectoriesController : ControllerBase
             if (directory.Owner != user.Id) 
                 return Unauthorized();
         
-        if (!team.Members.Contains(model.Permission.EntityId))
+        if (!team.Members.Contains(model.Permission.EntityId) && model.Permission.EntityId != "others")
             return Conflict(new
             {
                 Status = HttpStatusCode.Conflict,
@@ -300,6 +324,9 @@ public class DirectoriesController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
         
+        if (!ObjectId.TryParse(model.DirectoryId, out _))
+            return ValidationProblem();
+        
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var directory = await _directoriesService.GetAsync(model.DirectoryId);
@@ -329,7 +356,18 @@ public class DirectoriesController : ControllerBase
             if (directory.Owner != user.Id) 
                 return Unauthorized();
 
-        directory.Permissions.Remove(model.Permission);
+        var permissionToRemove = directory.Permissions.FirstOrDefault(o =>
+            o.EntityId == model.Permission.EntityId && o.Key == model.Permission.Key);
+
+        if (permissionToRemove == null)
+            return Conflict(new
+            {
+                Status = HttpStatusCode.Conflict,
+                SecondaryCode = ErrorCodes.PermissionNotFound,
+                Message = ErrorMessages.Content[(int) ErrorCodes.PermissionNotFound]
+            });
+            
+        directory.Permissions.Remove(permissionToRemove);
         await _directoriesService.PatchAsync(directory.Id, directory);
 
         return NoContent();

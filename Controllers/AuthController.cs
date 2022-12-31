@@ -31,7 +31,8 @@ public class AuthController : ControllerBase
         {
             Username = newUser.Username,
             Email = newUser.Email.ToLower(),
-            Password = BCrypt.Net.BCrypt.HashPassword(newUser.Password)
+            Password = BCrypt.Net.BCrypt.HashPassword(newUser.Password),
+            Teams = new List<string>(){}
         };
         
         if (!(await _usersService.IsEmailFreeAsync(user.Email)))
@@ -64,7 +65,7 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
 
-        var userByEmail = await _usersService.GetByEmailAsync(user.Email);
+        var userByEmail = await _usersService.GetByEmailAsync(user.Email.ToLower());
 
         if (userByEmail == null)
             return Conflict(new

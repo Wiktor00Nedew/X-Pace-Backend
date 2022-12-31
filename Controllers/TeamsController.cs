@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Xml.Schema;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using X_Pace_Backend.Models;
 using X_Pace_Backend.Services;
@@ -33,15 +34,18 @@ public class TeamsController : ControllerBase
             return Forbid();
 
         var user = (UserBase) HttpContext.Items["User"]!;
+        
+        Console.WriteLine(user.Id);
+        Console.WriteLine(newTeam.Name);
 
         Team team = new Team()
         {
             Name = newTeam.Name,
             CreatedAt = DateTime.Now,
-            Items = { },
-            Members = {user.Id!},
-            Moderators = { },
-            Owners = {user.Id!}
+            Items = new List<Item>(){},
+            Members = new List<string>(){user.Id!},
+            Moderators = new List<string>(){},
+            Owners = new List<string>(){user.Id!}
         };
 
         await _teamsService.CreateAsync(team);
@@ -53,12 +57,15 @@ public class TeamsController : ControllerBase
         return Ok(team);
     }
 
-    [HttpPost]
+    [HttpDelete]
     [Route("delete")]
     public async Task<IActionResult> DeleteTeam(DeleteTeamModel deleteTeamModel)
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(deleteTeamModel.TeamId, out _))
+            return ValidationProblem();
         
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -90,6 +97,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(id, out _))
+            return ValidationProblem();
 
         var user = (UserBase)HttpContext.Items["User"]!;
 
@@ -105,6 +115,8 @@ public class TeamsController : ControllerBase
 
         if (!team.Members.Contains(user.Id!))
             return Unauthorized();
+        
+        Console.WriteLine(team.Items[0].Id);
 
         return Ok(team);
     }
@@ -115,6 +127,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -142,6 +157,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -169,6 +187,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -214,12 +235,28 @@ public class TeamsController : ControllerBase
                 Message = ErrorMessages.Content[(int) ErrorCodes.TeamNotFound]
             });
 
-        if (team.Members.Contains(user.Id))
+        if (team.Members.Contains(user.Id) && teamToken.AccessLevel == AccessLevel.Member)
             return Conflict(new
             {
                 Status = HttpStatusCode.Conflict,
                 SecondaryCode = ErrorCodes.UserAlreadyRegistered,
                 Message = ErrorMessages.Content[(int) ErrorCodes.UserAlreadyRegistered]
+            });
+
+        if (team.Moderators.Contains(user.Id) && teamToken.AccessLevel == AccessLevel.Moderator)
+            return Conflict(new
+            {
+                Status = HttpStatusCode.Conflict,
+                SecondaryCode = ErrorCodes.ModeratorAlreadyRegistered,
+                Message = ErrorMessages.Content[(int) ErrorCodes.ModeratorAlreadyRegistered]
+            });
+        
+        if (team.Owners.Contains(user.Id) && teamToken.AccessLevel == AccessLevel.Owner)
+            return Conflict(new
+            {
+                Status = HttpStatusCode.Conflict,
+                SecondaryCode = ErrorCodes.OwnerAlreadyRegistered,
+                Message = ErrorMessages.Content[(int) ErrorCodes.OwnerAlreadyRegistered]
             });
 
         switch (teamToken.AccessLevel)
@@ -228,11 +265,13 @@ public class TeamsController : ControllerBase
                 team.Members.Add(user.Id);
                 break;
             case AccessLevel.Moderator:
-                team.Members.Add(user.Id);
+                if (!team.Members.Contains(user.Id))
+                    team.Members.Add(user.Id);
                 team.Moderators.Add(user.Id);
                 break;
             case AccessLevel.Owner:
-                team.Members.Add(user.Id);
+                if (!team.Members.Contains(user.Id))
+                    team.Members.Add(user.Id);
                 team.Owners.Add(user.Id);
                 break;
         }
@@ -248,6 +287,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -280,6 +322,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -312,6 +357,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -350,6 +398,9 @@ public class TeamsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.TeamId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 

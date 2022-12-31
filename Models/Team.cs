@@ -17,7 +17,7 @@ public class Team
 
     public List<string> Members { get; set; } = null!; // ids
 
-    public List<string> Items { get; set; } = null!; // both dirs and pages (do the check when downloading)
+    public List<Item> Items { get; set; } = null!; // both dirs and pages (do the check when downloading) (string (id), bool (isPage))
 
     public DateTime CreatedAt { get; set; }
 }

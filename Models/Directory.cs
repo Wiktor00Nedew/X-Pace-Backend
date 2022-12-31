@@ -6,6 +6,7 @@ namespace X_Pace_Backend.Models;
 public class Directory
 {
     [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
     
     public string Name { get; set; } = null!;
@@ -22,7 +23,7 @@ public class Directory
 
     public List<Permission> Permissions { get; set; } = null!;
 
-    public List<(string, bool)> Items { get; set; } = null!; // string is Id, both pages and dirs, check when reading
+    public List<Item> Items { get; set; } = null!; // string is Id, both pages and dirs, check when reading
 
     public const bool IS_PAGE = false;
 }

@@ -3,6 +3,7 @@ using X_Pace_Backend;
 using X_Pace_Backend.Middleware;
 using X_Pace_Backend.Models;
 using X_Pace_Backend.Services;
+using Directory = System.IO.Directory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,10 @@ builder.Services.Configure<X_PaceDatabaseSettings>(
 
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<UsersService>();
+builder.Services.AddSingleton<DirectoriesService>();
+builder.Services.AddSingleton<PagesService>();
+builder.Services.AddSingleton<TeamsService>();
+builder.Services.AddSingleton<TeamTokenService>();
 
 // Add services to the container.
 
@@ -48,6 +53,11 @@ app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/teams", Str
 });
 
 app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/pages", StringComparison.OrdinalIgnoreCase), appBuilder =>
+{
+    appBuilder.UseAuthMiddleware();
+});
+
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/directories", StringComparison.OrdinalIgnoreCase), appBuilder =>
 {
     appBuilder.UseAuthMiddleware();
 });

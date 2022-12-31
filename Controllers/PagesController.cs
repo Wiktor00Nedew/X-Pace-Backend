@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using X_Pace_Backend.Models;
 using X_Pace_Backend.Services;
 
@@ -26,6 +27,9 @@ public class PagesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.Team, out _) || (!ObjectId.TryParse(model.ParentDirectory, out _) && model.ParentDirectory != "root"))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -84,7 +88,7 @@ public class PagesController : ControllerBase
             Owner = user.Id,
             ParentDirectory = model.ParentDirectory,
             Permissions =
-            {
+            new List<Permission>(){
                 new()
                 {
                     EntityId = "others",
@@ -98,13 +102,22 @@ public class PagesController : ControllerBase
 
         if (page.ParentDirectory == "root")
         {
-            team.Items.Add(page.Id);
+            team.Items.Add(new()
+                {
+                    Id = page.Id!,
+                    IsPage = true
+                });
+                
             await _teamsService.PatchAsync(team.Id, team);
         }
         else
         {
             var directory = await _directoriesService.GetAsync(page.ParentDirectory);
-            directory.Items.Add((page.Id!, true));
+            directory.Items.Add(
+                new(){
+                Id = page.Id!,
+                IsPage = true
+            });
             await _directoriesService.PatchAsync(directory.Id, directory);
         }
 
@@ -117,6 +130,9 @@ public class PagesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.PageId, out _))
+            return ValidationProblem();
 
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -167,6 +183,9 @@ public class PagesController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
         
+        if (!ObjectId.TryParse(id, out _))
+            return ValidationProblem();
+        
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var page = await _pagesService.GetAsync(id);
@@ -208,6 +227,9 @@ public class PagesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+
+        if (!ObjectId.TryParse(model.PageId, out _))
+            return ValidationProblem();
         
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -242,6 +264,7 @@ public class PagesController : ControllerBase
                     return Unauthorized();
 
         page.Content = model.Content;
+        page.ModifiedAt = DateTime.Now;
         await _pagesService.PatchAsync(page.Id, page);
 
         return Ok(page);
@@ -253,6 +276,9 @@ public class PagesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return Forbid();
+        
+        if (!ObjectId.TryParse(model.PageId, out _))
+            return ValidationProblem();
         
         var user = (UserBase) HttpContext.Items["User"]!;
 
@@ -296,6 +322,9 @@ public class PagesController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
         
+        if (!ObjectId.TryParse(model.PageId, out _))
+            return ValidationProblem();
+        
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var page = await _pagesService.GetAsync(model.PageId);
@@ -325,7 +354,7 @@ public class PagesController : ControllerBase
             if (page.Owner != user.Id) 
                 return Unauthorized();
         
-        if (!team.Members.Contains(model.Permission.EntityId))
+        if (!team.Members.Contains(model.Permission.EntityId) && model.Permission.EntityId != "others")
             return Conflict(new
             {
                 Status = HttpStatusCode.Conflict,
@@ -346,6 +375,9 @@ public class PagesController : ControllerBase
         if (!ModelState.IsValid)
             return Forbid();
         
+        if (!ObjectId.TryParse(model.PageId, out _))
+            return ValidationProblem();
+        
         var user = (UserBase) HttpContext.Items["User"]!;
 
         var page = await _pagesService.GetAsync(model.PageId);
@@ -375,8 +407,20 @@ public class PagesController : ControllerBase
             if (page.Owner != user.Id) 
                 return Unauthorized();
 
-        page.Permissions.Remove(model.Permission);
+        var permissionToRemove = page.Permissions.FirstOrDefault(o =>
+            o.EntityId == model.Permission.EntityId && o.Key == model.Permission.Key);
+
+        if (permissionToRemove == null)
+            return Conflict(new
+            {
+                Status = HttpStatusCode.Conflict,
+                SecondaryCode = ErrorCodes.PermissionNotFound,
+                Message = ErrorMessages.Content[(int) ErrorCodes.PermissionNotFound]
+            });
+            
+        page.Permissions.Remove(permissionToRemove);
         await _pagesService.PatchAsync(page.Id, page);
+
 
         return NoContent();
     }

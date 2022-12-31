@@ -32,12 +32,16 @@ public class PagesService
     public async Task<bool> RemoveAsync(string id) // true -> error, false -> no error
     {
         var page = await GetAsync(id);
-        var team = await _teamsService.GetAsync(id);
+        var team = await _teamsService.GetAsync(page.Team);
         
         if (page.ParentDirectory == "root")
         {
-            team.Items.Remove(page.Id);
-            await _teamsService.PatchAsync(team.Id, team);
+            var itemToRemove = team.Items.FirstOrDefault(o => o.Id == page.Id);
+            if (itemToRemove != null)
+            {
+                team.Items.Remove(itemToRemove);
+                await _teamsService.PatchAsync(team.Id, team);
+            }
         }
         else
         {
@@ -46,8 +50,13 @@ public class PagesService
             if (directoryToPatch == null)
                 return true;
 
-            directoryToPatch.Items.Remove(directoryToPatch.Items.FirstOrDefault(o => o.Item1 == page.Id));
-            await _directoriesService.PatchAsync(directoryToPatch.Id, directoryToPatch);
+            var itemToRemove = directoryToPatch.Items.FirstOrDefault(o => o.Id == page.Id);
+
+            if (itemToRemove != null)
+            {
+                directoryToPatch.Items.Remove(itemToRemove);
+                await _directoriesService.PatchAsync(directoryToPatch.Id, directoryToPatch);
+            }
         }
 
         await _pagesCollection.DeleteOneAsync(x => x.Id == id);

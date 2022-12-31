@@ -12,7 +12,10 @@ public enum ErrorCodes
     PageNotFound = 1008,
     DirectoryNotFound = 1009,
     PageNotInTeam = 1010,
-    UserNotInTeam = 1011
+    UserNotInTeam = 1011,
+    ModeratorAlreadyRegistered = 1012,
+    OwnerAlreadyRegistered = 1013,
+    PermissionNotFound = 1014
 }
 
 public static class ErrorMessages
@@ -30,6 +33,9 @@ public static class ErrorMessages
         {1008, "Page not found"},
         {1009, "Directory not found"},
         {1010, "Chosen page not in the chosen team"},
-        {1011, "Chosen user not in the chosen team"}
+        {1011, "Chosen user not in the chosen team"},
+        {1012, "User is already moderator in that team"},
+        {1013, "User is already owner in that team"},
+        {1014, "Permission not found"}
     };
 }

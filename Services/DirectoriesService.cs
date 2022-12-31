@@ -9,21 +9,21 @@ public class DirectoriesService
 {
     private readonly IMongoCollection<Directory> _directoriesCollection;
     
+    private readonly IMongoCollection<Page> _pagesCollection;
+    
     private readonly TeamsService _teamsService;
 
-    private readonly PagesService _pagesService;
-
-    public DirectoriesService(IOptions<X_PaceDatabaseSettings> x_PaceDatabaseSettings, TeamsService teamsService, PagesService pagesService)
+    public DirectoriesService(IOptions<X_PaceDatabaseSettings> x_PaceDatabaseSettings, TeamsService teamsService)
     {
         var mongoClient = new MongoClient(x_PaceDatabaseSettings.Value.ConnectionString);
 
         var mongoDatabase = mongoClient.GetDatabase(x_PaceDatabaseSettings.Value.DatabaseName);
 
         _directoriesCollection = mongoDatabase.GetCollection<Directory>(x_PaceDatabaseSettings.Value.DirectoriesCollectionName);
+
+        _pagesCollection = mongoDatabase.GetCollection<Page>(x_PaceDatabaseSettings.Value.PagesCollectionName);
         
         _teamsService = teamsService;
-
-        _pagesService = pagesService;
     }
     
     public async Task CreateAsync(Directory newDirectory) =>
@@ -32,12 +32,17 @@ public class DirectoriesService
     public async Task<bool> RemoveAsync(string id) // true -> error, false -> no error
     {
         var directory = await GetAsync(id);
-        var team = await _teamsService.GetAsync(id);
+        var team = await _teamsService.GetAsync(directory.Team);
         
         if (directory.ParentDirectory == "root")
         {
-            team.Items.Remove(directory.Id);
-            await _teamsService.PatchAsync(team.Id, team);
+            var itemToRemove = team.Items.FirstOrDefault(o => o.Id == directory.Id);
+
+            if (itemToRemove != null)
+            {
+                team.Items.Remove(itemToRemove);
+                await _teamsService.PatchAsync(team.Id, team);
+            }
         }
         else
         {
@@ -46,23 +51,66 @@ public class DirectoriesService
             if (directoryToPatch == null)
                 return true;
 
-            directoryToPatch.Items.Remove(directoryToPatch.Items.FirstOrDefault(o => o.Item1 == directory.Id));
-            await PatchAsync(directoryToPatch.Id, directoryToPatch);
+            var itemToRemove = directoryToPatch.Items.FirstOrDefault(o => o.Id == directory.Id);
+
+            if (itemToRemove != null)
+            {
+                directoryToPatch.Items.Remove(itemToRemove);
+                await PatchAsync(directoryToPatch.Id, directoryToPatch);
+            }
         }
 
         foreach (var item in directory.Items)
         {
-            if (item.Item2)
+            if (item.IsPage)
             {
-                await _pagesService.RemoveAsync(item.Item1);
+                await RemovePageAsync(item.Id);
             }
             else
             {
-                await RemoveAsync(item.Item1);
+                await RemoveAsync(item.Id);
             }
         }
 
         await _directoriesCollection.DeleteOneAsync(x => x.Id == id);
+
+        return false;
+    }
+    
+    public async Task<Page> GetPageAsync(string id) =>
+        await _pagesCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+    
+    public async Task<bool> RemovePageAsync(string id) // true -> error, false -> no error
+    {
+        var page = await GetPageAsync(id);
+        var team = await _teamsService.GetAsync(page.Team);
+        
+        if (page.ParentDirectory == "root")
+        {
+            var itemToRemove = team.Items.FirstOrDefault(o => o.Id == page.Id);
+            if (itemToRemove != null)
+            {
+                team.Items.Remove(itemToRemove);
+                await _teamsService.PatchAsync(team.Id, team);
+            }
+        }
+        else
+        {
+            var directoryToPatch = await GetAsync(page.ParentDirectory);
+
+            if (directoryToPatch == null)
+                return true;
+
+            var itemToRemove = directoryToPatch.Items.FirstOrDefault(o => o.Id == page.Id);
+
+            if (itemToRemove != null)
+            {
+                directoryToPatch.Items.Remove(itemToRemove);
+                await PatchAsync(directoryToPatch.Id, directoryToPatch);
+            }
+        }
+
+        await _pagesCollection.DeleteOneAsync(x => x.Id == id);
 
         return false;
     }
