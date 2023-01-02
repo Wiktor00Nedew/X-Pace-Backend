@@ -102,7 +102,9 @@ public class TeamsController : ControllerBase
             return ValidationProblem();
 
         var user = (UserBase)HttpContext.Items["User"]!;
-
+        
+        Console.WriteLine(id);
+        
         var team = await _teamsService.GetAsync(id);
 
         if (team == null)
@@ -115,8 +117,6 @@ public class TeamsController : ControllerBase
 
         if (!team.Members.Contains(user.Id!))
             return Unauthorized();
-        
-        Console.WriteLine(team.Items[0].Id);
 
         return Ok(team);
     }
@@ -389,6 +389,20 @@ public class TeamsController : ControllerBase
 
         await _teamsService.PatchAsync(team.Id, team);
 
+        var userToRemove = await _usersService.GetAsync(model.EntityId);
+
+        if (userToRemove == null)
+            return Conflict(new
+            {
+                Status = HttpStatusCode.Conflict,
+                SecondaryCode = ErrorCodes.UserNotFound,
+                Message = ErrorMessages.Content[(int) ErrorCodes.UserNotFound]
+            });
+        
+        var userToPatch = await _usersService.GetByEmailAsync(userToRemove.Email);
+        userToPatch.Teams.Remove(team.Id);
+        await _usersService.PatchAsync(user.Id, userToPatch);
+        
         return NoContent();
     }
 

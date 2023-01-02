@@ -19,7 +19,7 @@ public class UsersController : ControllerBase
     [Route("me")]
     public async Task<IActionResult> Me()
     {
-        var user = HttpContext.Items["User"];
+        var user = (UserBase) HttpContext.Items["User"];
         return Ok(user);
     }
 }

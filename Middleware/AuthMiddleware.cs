@@ -37,7 +37,8 @@ public class AuthMiddleware
                 Id = user.Id,
                 Email = user.Email,
                 Username = user.Username,
-                Disabled = user.Disabled
+                Disabled = user.Disabled,
+                Teams = user.Teams
             };
             
             await _next(ctx);
