@@ -35,8 +35,8 @@ public class TeamsController : ControllerBase
 
         var user = (UserBase) HttpContext.Items["User"]!;
         
-        Console.WriteLine(user.Id);
-        Console.WriteLine(newTeam.Name);
+        //Console.WriteLine(user.Id);
+        //Console.WriteLine(newTeam.Name);
 
         Team team = new Team()
         {
@@ -103,7 +103,7 @@ public class TeamsController : ControllerBase
 
         var user = (UserBase)HttpContext.Items["User"]!;
         
-        Console.WriteLine(id);
+        //Console.WriteLine(id);
         
         var team = await _teamsService.GetAsync(id);
 

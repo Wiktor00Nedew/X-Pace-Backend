@@ -30,7 +30,7 @@ public class TokenService
     {
         var id = Nanoid.Nanoid.Generate(size: 64);
         
-        Console.WriteLine(id == null);
+        //Console.WriteLine(id == null);
 
         while ((await this.GetAsync(id)) != null)
         {

@@ -30,7 +30,7 @@ public class TeamTokenService
     {
         var id = Nanoid.Nanoid.Generate(size: 6);
         
-        Console.WriteLine(id == null);
+        //Console.WriteLine(id == null);
 
         while ((await this.GetAsync(id)) != null)
         {

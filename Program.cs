@@ -37,7 +37,7 @@ app.UseExceptionHandler("/api/error");
 
 app.MapControllers();
 
-app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/users", StringComparison.OrdinalIgnoreCase), appBuilder =>
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/users/me", StringComparison.OrdinalIgnoreCase), appBuilder =>
 {
     appBuilder.UseAuthMiddleware();
 });
