@@ -277,12 +277,15 @@ public class TeamsController : ControllerBase
         }
 
         await _teamsService.PatchAsync(team.Id, team);
-
-        var userByEmail = await _usersService.GetByEmailAsync(user.Email);
         
-        userByEmail.Teams.Add(team.Id);
+        if (!team.Members.Contains(user.Id))
+        {
+            var userByEmail = await _usersService.GetByEmailAsync(user.Email);
+        
+            userByEmail.Teams.Add(team.Id);
 
-        await _usersService.PatchAsync(userByEmail.Id, userByEmail);
+            await _usersService.PatchAsync(userByEmail.Id, userByEmail);
+        }
 
         return NoContent();
     }
